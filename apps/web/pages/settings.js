@@ -76,7 +76,8 @@ export default function SettingsPage() {
         { key: 'billing', label: '💳 Billing & Tax' },
         { key: 'users', label: '👥 Users' },
         { key: 'categories', label: '🏷️ Categories' },
-        { key: 'barcode', label: '📊 Barcode' }
+        { key: 'barcode', label: '📊 Barcode' },
+        { key: 'hardware', label: '🔌 Hardware' }
     ];
 
     return (

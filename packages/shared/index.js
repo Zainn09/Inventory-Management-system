@@ -47,48 +47,66 @@ const PERMISSIONS = {
   'suppliers.manage': [ROLES.ADMIN, ROLES.MANAGER],
 
   // Audit
-  'audit.view': [ROLES.ADMIN]
+  'inventory.view_logs': [ROLES.ADMIN, ROLES.MANAGER],
 };
 
 // Order types
-const ORDER_TYPES = {
+export const ORDER_TYPES = {
   POS_SALE: 'pos_sale',
-  ONLINE_ORDER: 'online_order'
+  ONLINE_ORDER: 'online_order',
 };
 
 // Order statuses
-const ORDER_STATUSES = {
+export const ORDER_STATUSES = {
   PENDING: 'pending',
   COMPLETED: 'completed',
   RETURNED: 'returned',
-  PARTIALLY_RETURNED: 'partially_returned'
+  PARTIALLY_RETURNED: 'partially_returned',
+  CANCELLED: 'cancelled',
 };
 
 // Metal types
-const METAL_TYPES = {
+export const METAL_TYPES = {
   GOLD: 'gold',
   SILVER: 'silver',
   PLATINUM: 'platinum',
   DIAMOND: 'diamond',
-  OTHER: 'other'
+  OTHER: 'other',
 };
 
 // Payment methods
-const PAYMENT_METHODS = {
+export const PAYMENT_METHODS = {
   CASH: 'cash',
   CARD: 'card',
   UPI: 'upi',
-  BANK_TRANSFER: 'bank_transfer',
-  MIXED: 'mixed'
+  CREDIT: 'credit',
 };
 
 // Inventory actions
-const INVENTORY_ACTIONS = {
-  ADDED: 'added',
-  SOLD: 'sold',
-  RETURNED: 'returned',
-  ADJUSTED: 'adjusted',
-  DAMAGED: 'damaged'
+export const INVENTORY_ACTIONS = {
+  ADD: 'add',
+  REDUCE: 'reduce',
+  RETURN: 'return',
+  ADJUST: 'adjust',
+};
+
+// Printer types
+export const PRINTER_TYPES = {
+  THERMAL_80MM: 'thermal_80mm',
+  LABEL_50X25: 'label_50x25',
+  A4_STANDARD: 'a4_standard',
+};
+
+// Display modes
+export const DISPLAY_MODES = {
+  KIOSK: 'kiosk',
+  WINDOWED: 'windowed',
+};
+
+// Barcode formats
+export const BARCODE_FORMATS = {
+  CODE128: 'CODE128',
+  EAN13: 'EAN13',
 };
 
 function hasPermission(role, permission) {

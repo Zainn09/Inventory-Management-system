@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Layout from '../components/Layout';
 import { api, formatCurrency, METAL_EMOJIS } from '../lib/api';
+import { printLabel } from '../lib/print';
+import { BarcodeLabel } from '../components/PrintLayout';
 
 export default function InventoryPage() {
     const [products, setProducts] = useState([]);
@@ -14,10 +16,19 @@ export default function InventoryPage() {
     const [editProduct, setEditProduct] = useState(null);
     const [form, setForm] = useState({});
     const [saving, setSaving] = useState(false);
+    const [settings, setSettings] = useState({});
 
     useEffect(() => {
         loadCategories();
+        loadSettings();
     }, []);
+
+    async function loadSettings() {
+        try {
+            const data = await api('/settings');
+            setSettings(data.settings || {});
+        } catch (err) { console.error(err); }
+    }
 
     useEffect(() => {
         loadProducts();
@@ -162,8 +173,9 @@ export default function InventoryPage() {
                                         </td>
                                         <td>
                                             <div style={{ display: 'flex', gap: 4 }}>
-                                                <button className="btn btn--ghost btn--sm" onClick={() => openEdit(p)}>✏️</button>
-                                                <button className="btn btn--ghost btn--sm" onClick={() => deleteProduct(p.id)}>🗑️</button>
+                                                <button className="btn btn--ghost btn--sm" title="Print Tag" onClick={() => printLabel(p)}>🏷️</button>
+                                                <button className="btn btn--ghost btn--sm" title="Edit" onClick={() => openEdit(p)}>✏️</button>
+                                                <button className="btn btn--ghost btn--sm" title="Delete" onClick={() => deleteProduct(p.id)}>🗑️</button>
                                             </div>
                                         </td>
                                     </tr>
@@ -249,6 +261,11 @@ export default function InventoryPage() {
                                     </div>
                                 </div>
                                 <div className="modal__footer">
+                                    <div style={{ flex: 1 }}>
+                                        {editProduct && (
+                                            <button type="button" className="btn btn--secondary" onClick={() => printLabel(editProduct)}>🖨️ Print Label</button>
+                                        )}
+                                    </div>
                                     <button type="button" className="btn btn--secondary" onClick={() => setShowModal(false)}>Cancel</button>
                                     <button type="submit" className="btn btn--primary" disabled={saving}>
                                         {saving ? '⏳ Saving...' : editProduct ? '💾 Update' : '+ Create Product'}

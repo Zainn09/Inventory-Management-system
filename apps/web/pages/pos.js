@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
 import Layout from '../components/Layout';
 import { api, formatCurrency, CATEGORY_EMOJIS, METAL_EMOJIS } from '../lib/api';
+import { printReceipt } from '../lib/print';
+import { ReceiptTemplate } from '../components/PrintLayout';
 
 export default function POSPage() {
     const [products, setProducts] = useState([]);
@@ -17,12 +19,30 @@ export default function POSPage() {
     const [customers, setCustomers] = useState([]);
     const [showSuccess, setShowSuccess] = useState(null);
     const [processing, setProcessing] = useState(false);
+    const [settings, setSettings] = useState({});
     const scanRef = useRef(null);
 
     useEffect(() => {
         loadData();
+        loadSettings();
         if (scanRef.current) scanRef.current.focus();
+
+        // Auto-refocus scanner
+        const handleClick = () => {
+            if (scanRef.current && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'SELECT' && document.activeElement?.tagName !== 'TEXTAREA') {
+                scanRef.current.focus();
+            }
+        };
+        window.addEventListener('click', handleClick);
+        return () => window.removeEventListener('click', handleClick);
     }, []);
+
+    async function loadSettings() {
+        try {
+            const data = await api('/settings');
+            setSettings(data.settings || {});
+        } catch (err) { console.error(err); }
+    }
 
     async function loadData() {
         try {
@@ -172,12 +192,23 @@ export default function POSPage() {
                     <div className="toast-container">
                         <div className="toast toast--success">
                             <span>✅</span>
-                            <div>
+                            <div className="toast-content" style={{ flex: 1 }}>
                                 <strong>Sale Complete!</strong>
                                 <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
                                     Invoice: {showSuccess.invoiceNumber} — {formatCurrency(showSuccess.totalAmount)}
                                 </div>
                             </div>
+                            <button
+                                className="btn btn--secondary btn--sm"
+                                onClick={() => printReceipt(showSuccess)}
+                                style={{ marginLeft: 'var(--space-md)' }}
+                            >
+                                🖨️ Print Receipt
+                            </button>
+                        </div>
+                        {/* Hidden receipt for DOM printing */}
+                        <div style={{ display: 'none' }}>
+                            <ReceiptTemplate order={showSuccess} storeSettings={settings} />
                         </div>
                     </div>
                 )}
