@@ -1,0 +1,321 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// ──────────────────────────── USERS ────────────────────────────
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  fullName     String   @map("full_name")
+  role         String   @default("cashier") // admin | manager | cashier
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  orders        Order[]
+  auditLogs     AuditLog[]
+  inventoryLogs InventoryLog[]
+  returns       Return[]       @relation("ProcessedBy")
+
+  @@map("users")
+}
+
+// ──────────────────────────── CATEGORIES ────────────────────────────
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  parentId    String?   @map("parent_id")
+  sortOrder   Int       @default(0) @map("sort_order")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  parent   Category?  @relation("SubCategories", fields: [parentId], references: [id])
+  children Category[] @relation("SubCategories")
+  products Product[]
+
+  @@map("categories")
+}
+
+// ──────────────────────────── PRODUCTS ────────────────────────────
+model Product {
+  id                String   @id @default(uuid())
+  sku               String   @unique
+  name              String
+  description       String?
+  categoryId        String?  @map("category_id")
+  metalType         String   @default("gold") @map("metal_type") // gold | silver | platinum | diamond | other
+  purity            Float?   // e.g. 91.6 for 22K gold
+  weightGrams       Float    @default(0) @map("weight_grams")
+  makingCharges     Float    @default(0) @map("making_charges")
+  costPrice         Float    @default(0) @map("cost_price")
+  sellingPrice      Float    @default(0) @map("selling_price")
+  quantity          Int      @default(0)
+  lowStockThreshold Int      @default(5) @map("low_stock_threshold")
+  imageUrl          String?  @map("image_url")
+  isActive          Boolean  @default(true) @map("is_active")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  category      Category?      @relation(fields: [categoryId], references: [id])
+  barcode       Barcode?
+  orderItems    OrderItem[]
+  inventoryLogs InventoryLog[]
+  returnItems   ReturnItem[]
+  poItems       POItem[]
+
+  @@map("products")
+}
+
+// ──────────────────────────── BARCODES ────────────────────────────
+model Barcode {
+  id              String   @id @default(uuid())
+  productId       String   @unique @map("product_id")
+  barcodeValue    String   @unique @map("barcode_value")
+  barcodeType     String   @default("CODE128") @map("barcode_type")
+  barcodeImageUrl String?  @map("barcode_image_url")
+  generatedAt     DateTime @default(now()) @map("generated_at")
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("barcodes")
+}
+
+// ──────────────────────────── CUSTOMERS ────────────────────────────
+model Customer {
+  id          String   @id @default(uuid())
+  fullName    String   @map("full_name")
+  phone       String   @unique
+  email       String?
+  address     String?
+  dateOfBirth String?  @map("date_of_birth")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  orders        Order[]
+  loyaltyPoints LoyaltyPoint[]
+
+  @@map("customers")
+}
+
+// ──────────────────────────── ORDERS ────────────────────────────
+model Order {
+  id             String   @id @default(uuid())
+  invoiceNumber  String   @unique @map("invoice_number")
+  customerId     String?  @map("customer_id")
+  cashierId      String   @map("cashier_id")
+  orderType      String   @default("pos_sale") @map("order_type") // pos_sale | online_order
+  status         String   @default("completed") // pending | completed | returned | partially_returned
+  subtotal       Float    @default(0)
+  discountAmount Float    @default(0) @map("discount_amount")
+  taxAmount      Float    @default(0) @map("tax_amount")
+  totalAmount    Float    @default(0) @map("total_amount")
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  customer      Customer?      @relation(fields: [customerId], references: [id])
+  cashier       User           @relation(fields: [cashierId], references: [id])
+  items         OrderItem[]
+  payment       Payment?
+  returns       Return[]
+  loyaltyPoints LoyaltyPoint[]
+
+  @@map("orders")
+}
+
+// ──────────────────────────── ORDER ITEMS ────────────────────────────
+model OrderItem {
+  id             String @id @default(uuid())
+  orderId        String @map("order_id")
+  productId      String @map("product_id")
+  scannedBarcode String? @map("scanned_barcode")
+  quantity       Int    @default(1)
+  unitPrice      Float  @map("unit_price")
+  discount       Float  @default(0)
+  taxRate        Float  @default(0) @map("tax_rate")
+  taxAmount      Float  @default(0) @map("tax_amount")
+  lineTotal      Float  @map("line_total")
+
+  order       Order       @relation(fields: [orderId], references: [id])
+  product     Product     @relation(fields: [productId], references: [id])
+  returnItems ReturnItem[]
+
+  @@map("order_items")
+}
+
+// ──────────────────────────── PAYMENTS ────────────────────────────
+model Payment {
+  id             String   @id @default(uuid())
+  orderId        String   @unique @map("order_id")
+  method         String   @default("cash") // cash | card | upi | bank_transfer | mixed
+  amountPaid     Float    @map("amount_paid")
+  changeGiven    Float    @default(0) @map("change_given")
+  transactionRef String?  @map("transaction_ref")
+  paidAt         DateTime @default(now()) @map("paid_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("payments")
+}
+
+// ──────────────────────────── RETURNS ────────────────────────────
+model Return {
+  id            String   @id @default(uuid())
+  orderId       String   @map("order_id")
+  processedById String   @map("processed_by")
+  returnInvoice String   @unique @map("return_invoice")
+  reason        String   @default("customer_request") // defective | wrong_item | customer_request | other
+  notes         String?
+  refundAmount  Float    @default(0) @map("refund_amount")
+  refundMethod  String   @default("cash") @map("refund_method") // cash | card | store_credit
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  order       Order        @relation(fields: [orderId], references: [id])
+  processedBy User         @relation("ProcessedBy", fields: [processedById], references: [id])
+  items       ReturnItem[]
+
+  @@map("returns")
+}
+
+model ReturnItem {
+  id               String @id @default(uuid())
+  returnId         String @map("return_id")
+  orderItemId      String @map("order_item_id")
+  productId        String @map("product_id")
+  quantityReturned Int    @map("quantity_returned")
+  refundLineTotal  Float  @map("refund_line_total")
+
+  return    Return    @relation(fields: [returnId], references: [id])
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id])
+
+  @@map("return_items")
+}
+
+// ──────────────────────────── INVENTORY LOGS ────────────────────────────
+model InventoryLog {
+  id             String   @id @default(uuid())
+  productId      String   @map("product_id")
+  userId         String?  @map("user_id")
+  action         String   // added | sold | returned | adjusted | damaged
+  quantityChange Int      @map("quantity_change")
+  quantityBefore Int      @map("quantity_before")
+  quantityAfter  Int      @map("quantity_after")
+  reason         String?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id])
+  user    User?   @relation(fields: [userId], references: [id])
+
+  @@map("inventory_logs")
+}
+
+// ──────────────────────────── LOYALTY POINTS ────────────────────────────
+model LoyaltyPoint {
+  id             String   @id @default(uuid())
+  customerId     String   @map("customer_id")
+  orderId        String?  @map("order_id")
+  pointsEarned   Int      @default(0) @map("points_earned")
+  pointsRedeemed Int      @default(0) @map("points_redeemed")
+  balance        Int      @default(0)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  order    Order?   @relation(fields: [orderId], references: [id])
+
+  @@map("loyalty_points")
+}
+
+// ──────────────────────────── SUPPLIERS ────────────────────────────
+model Supplier {
+  id          String   @id @default(uuid())
+  companyName String   @map("company_name")
+  contactName String?  @map("contact_name")
+  phone       String?
+  email       String?
+  address     String?
+  gstNumber   String?  @map("gst_number")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  purchaseOrders PurchaseOrder[]
+
+  @@map("suppliers")
+}
+
+// ──────────────────────────── PURCHASE ORDERS ────────────────────────────
+model PurchaseOrder {
+  id           String   @id @default(uuid())
+  poNumber     String   @unique @map("po_number")
+  supplierId   String   @map("supplier_id")
+  status       String   @default("draft") // draft | ordered | received | partial | cancelled
+  totalAmount  Float    @default(0) @map("total_amount")
+  expectedDate String?  @map("expected_date")
+  receivedDate String?  @map("received_date")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+  items    POItem[]
+
+  @@map("purchase_orders")
+}
+
+model POItem {
+  id               String @id @default(uuid())
+  purchaseOrderId  String @map("purchase_order_id")
+  productId        String @map("product_id")
+  quantityOrdered  Int    @map("quantity_ordered")
+  quantityReceived Int    @default(0) @map("quantity_received")
+  unitCost         Float  @map("unit_cost")
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  product       Product       @relation(fields: [productId], references: [id])
+
+  @@map("po_items")
+}
+
+// ──────────────────────────── AUDIT LOGS ────────────────────────────
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  action     String
+  oldValues  String?  @map("old_values") // JSON string
+  newValues  String?  @map("new_values") // JSON string
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+// ──────────────────────────── SETTINGS ────────────────────────────
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String   // JSON string
+  group     String   @default("general") // general | tax | billing | barcode
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}
+
+// ──────────────────────────── GOLD RATES ────────────────────────────
+model GoldRate {
+  id          String   @id @default(uuid())
+  metalType   String   @map("metal_type") // gold_24k | gold_22k | gold_18k | silver | platinum
+  ratePerGram Float    @map("rate_per_gram")
+  source      String?
+  fetchedAt   DateTime @default(now()) @map("fetched_at")
+
+  @@map("gold_rates")
+}
