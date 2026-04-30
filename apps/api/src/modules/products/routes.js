@@ -1,7 +1,7 @@
 const express = require('express');
 const bwipjs = require('bwip-js');
-const prisma = require('../lib/prisma');
-const { authenticate, authorize } = require('../middleware/auth');
+const prisma = require('../../lib/prisma');
+const { authenticate, authorize } = require('../../middleware/auth');
 
 const router = express.Router();
 

@@ -1,0 +1,8 @@
+﻿
+> @jewellery-pos/web@1.0.0 dev
+> next dev -p 3000
+
+  Γû▓ Next.js 14.2.35
+  - Local:        http://localhost:3000
+
+ Γ£ô Starting...

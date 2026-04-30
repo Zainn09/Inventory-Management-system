@@ -51,13 +51,13 @@ const PERMISSIONS = {
 };
 
 // Order types
-export const ORDER_TYPES = {
+const ORDER_TYPES = {
   POS_SALE: 'pos_sale',
   ONLINE_ORDER: 'online_order',
 };
 
 // Order statuses
-export const ORDER_STATUSES = {
+const ORDER_STATUSES = {
   PENDING: 'pending',
   COMPLETED: 'completed',
   RETURNED: 'returned',
@@ -66,7 +66,7 @@ export const ORDER_STATUSES = {
 };
 
 // Metal types
-export const METAL_TYPES = {
+const METAL_TYPES = {
   GOLD: 'gold',
   SILVER: 'silver',
   PLATINUM: 'platinum',
@@ -75,7 +75,7 @@ export const METAL_TYPES = {
 };
 
 // Payment methods
-export const PAYMENT_METHODS = {
+const PAYMENT_METHODS = {
   CASH: 'cash',
   CARD: 'card',
   UPI: 'upi',
@@ -83,7 +83,7 @@ export const PAYMENT_METHODS = {
 };
 
 // Inventory actions
-export const INVENTORY_ACTIONS = {
+const INVENTORY_ACTIONS = {
   ADD: 'add',
   REDUCE: 'reduce',
   RETURN: 'return',
@@ -91,20 +91,20 @@ export const INVENTORY_ACTIONS = {
 };
 
 // Printer types
-export const PRINTER_TYPES = {
+const PRINTER_TYPES = {
   THERMAL_80MM: 'thermal_80mm',
   LABEL_50X25: 'label_50x25',
   A4_STANDARD: 'a4_standard',
 };
 
 // Display modes
-export const DISPLAY_MODES = {
+const DISPLAY_MODES = {
   KIOSK: 'kiosk',
   WINDOWED: 'windowed',
 };
 
 // Barcode formats
-export const BARCODE_FORMATS = {
+const BARCODE_FORMATS = {
   CODE128: 'CODE128',
   EAN13: 'EAN13',
 };

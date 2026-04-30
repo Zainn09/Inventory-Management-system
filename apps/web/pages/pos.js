@@ -20,6 +20,7 @@ export default function POSPage() {
     const [showSuccess, setShowSuccess] = useState(null);
     const [processing, setProcessing] = useState(false);
     const [settings, setSettings] = useState({});
+    const [amountPaid, setAmountPaid] = useState('');
     const scanRef = useRef(null);
 
     useEffect(() => {
@@ -27,7 +28,6 @@ export default function POSPage() {
         loadSettings();
         if (scanRef.current) scanRef.current.focus();
 
-        // Auto-refocus scanner
         const handleClick = () => {
             if (scanRef.current && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'SELECT' && document.activeElement?.tagName !== 'TEXTAREA') {
                 scanRef.current.focus();
@@ -68,7 +68,6 @@ export default function POSPage() {
                     addToCart(data.product);
                 }
             } catch (err) {
-                // Try product name search
                 const found = products.find(p =>
                     p.name.toLowerCase().includes(scanInput.toLowerCase()) ||
                     p.sku.toLowerCase() === scanInput.toLowerCase()
@@ -139,6 +138,8 @@ export default function POSPage() {
     const taxableAmount = subtotal - discountAmt;
     const taxAmt = (taxableAmount * taxRate) / 100;
     const total = taxableAmount + taxAmt;
+    const paidAmount = parseFloat(amountPaid) || total;
+    const changeGiven = Math.max(0, paidAmount - total);
 
     // Complete sale
     async function completeSale() {
@@ -159,7 +160,8 @@ export default function POSPage() {
                     taxRate,
                     payment: {
                         method: paymentMethod,
-                        amountPaid: total
+                        amountPaid: paidAmount,
+                        changeGiven: changeGiven
                     }
                 })
             });
@@ -168,14 +170,19 @@ export default function POSPage() {
             setCart([]);
             setDiscount(0);
             setCustomerId('');
-            loadData(); // Refresh products for updated quantities
+            setAmountPaid('');
+            loadData();
 
-            setTimeout(() => setShowSuccess(null), 5000);
+            // Don't auto-dismiss — let user close manually or it dismisses on next sale
         } catch (err) {
             alert('Error: ' + err.message);
         } finally {
             setProcessing(false);
         }
+    }
+
+    function dismissSuccess() {
+        setShowSuccess(null);
     }
 
     // Filter products
@@ -197,14 +204,25 @@ export default function POSPage() {
                                 <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
                                     Invoice: {showSuccess.invoiceNumber} — {formatCurrency(showSuccess.totalAmount)}
                                 </div>
+                                {showSuccess.payment && (
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                                        Paid: {formatCurrency(showSuccess.payment.amountPaid)} via {showSuccess.payment.method.toUpperCase()}
+                                        {showSuccess.payment.changeGiven > 0 && ` • Change: ${formatCurrency(showSuccess.payment.changeGiven)}`}
+                                    </div>
+                                )}
                             </div>
                             <button
                                 className="btn btn--secondary btn--sm"
                                 onClick={() => printReceipt(showSuccess)}
-                                style={{ marginLeft: 'var(--space-md)' }}
+                                style={{ marginLeft: 'var(--space-sm)' }}
                             >
-                                🖨️ Print Receipt
+                                🖨️ Print
                             </button>
+                            <button
+                                className="btn btn--ghost btn--sm"
+                                onClick={dismissSuccess}
+                                style={{ marginLeft: '4px', padding: '4px 8px' }}
+                            >✕</button>
                         </div>
                         {/* Hidden receipt for DOM printing */}
                         <div style={{ display: 'none' }}>
@@ -267,6 +285,12 @@ export default function POSPage() {
                                     </div>
                                 </div>
                             ))}
+                            {filteredProducts.length === 0 && (
+                                <div className="empty-state" style={{ gridColumn: '1/-1' }}>
+                                    <div className="empty-state__icon">📦</div>
+                                    <div className="empty-state__text">No products found</div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -304,7 +328,9 @@ export default function POSPage() {
                                     <div key={item.id} className="pos-cart__item">
                                         <div className="pos-cart__item-info">
                                             <div className="pos-cart__item-name">{item.name}</div>
-                                            <div className="pos-cart__item-meta">{item.sku} • {item.weight}g</div>
+                                            <div className="pos-cart__item-meta">
+                                                {item.sku} • {item.weight}g • {(item.metalType || '').toUpperCase()}
+                                            </div>
                                         </div>
                                         <div className="pos-cart__item-qty">
                                             <button onClick={() => updateCartQty(item.id, -1)}>−</button>
@@ -343,7 +369,7 @@ export default function POSPage() {
                                         <span style={{ color: 'var(--color-danger)' }}>- {formatCurrency(discountAmt)}</span>
                                     </div>
                                     <div className="pos-cart__summary-row">
-                                        <span>Tax ({taxRate}%)</span>
+                                        <span>GST ({taxRate}%)</span>
                                         <span>+ {formatCurrency(taxAmt)}</span>
                                     </div>
                                     <div className="pos-cart__summary-row pos-cart__summary-row--total">
@@ -384,6 +410,29 @@ export default function POSPage() {
                                             </button>
                                         ))}
                                     </div>
+
+                                    {/* Amount Paid & Change */}
+                                    {paymentMethod === 'cash' && (
+                                        <div style={{ display: 'flex', gap: 'var(--space-sm)', marginBottom: 'var(--space-md)', alignItems: 'center' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 2 }}>Amount Received</label>
+                                                <input
+                                                    type="number"
+                                                    className="input"
+                                                    placeholder={formatCurrency(total)}
+                                                    value={amountPaid}
+                                                    onChange={e => setAmountPaid(e.target.value)}
+                                                    style={{ fontSize: '1rem', fontWeight: 700 }}
+                                                />
+                                            </div>
+                                            <div style={{ flex: 1, textAlign: 'center' }}>
+                                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 2 }}>Change</label>
+                                                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: changeGiven > 0 ? 'var(--color-success)' : 'var(--color-text-muted)', padding: '10px 0' }}>
+                                                    {formatCurrency(changeGiven)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <button
                                         className="btn btn--success btn--lg btn--full"

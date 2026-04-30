@@ -1094,3 +1094,78 @@ select.input {
   font-size: 0.82rem;
   color: var(--color-text-secondary);
 }
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+  /* Hide everything except the receipt */
+  body {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .sidebar,
+  .topbar,
+  .main-content > *:not(.print-receipt-wrapper),
+  .pos-layout,
+  .pos-products,
+  .pos-cart,
+  .toast-container .toast,
+  .toast-container .btn,
+  .toast-container .toast-content,
+  .modal-overlay,
+  .page,
+  nav,
+  button,
+  .btn {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Show the receipt */
+  .print-receipt,
+  #print-receipt {
+    display: block !important;
+    visibility: visible !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 80mm !important;
+    margin: 0 !important;
+    padding: 5mm !important;
+    background: white !important;
+    color: black !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 12px !important;
+    box-shadow: none !important;
+    border: none !important;
+    z-index: 99999 !important;
+  }
+
+  /* Ensure parent containers don't hide receipt */
+  .print-receipt *,
+  #print-receipt * {
+    visibility: visible !important;
+    color: black !important;
+  }
+
+  .print-receipt .receipt-divider,
+  #print-receipt .receipt-divider {
+    border-color: black !important;
+  }
+
+  /* Page setup for thermal receipt */
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+}
+
